@@ -22,13 +22,14 @@ def get_db_connection():
 def index():
     return render_template('index.html')
 
-@app.route('/api/data/<table_name>')
-def get_top_10(table_name):
+@app.route('/get_top_10')
+def get_top_10():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        query = f"SELECT TOP 10 * FROM {'FiscalNote'}"
+        table_name = 'FiscalNote'
+        query = f"SELECT TOP 10 * FROM {table_name}"
         cursor.execute(query)
         
         columns = [column[0] for column in cursor.description]
