@@ -1,11 +1,9 @@
-from flask import Flask, jsonify, render_template
+import os
 from dotenv import load_dotenv
 import pyodbc
-import os
+import pandas as pd
 
-app = Flask(__name__)
-
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
 # Database connection configuration
@@ -14,34 +12,11 @@ DATABASE = os.getenv('DB_NAME')
 USERNAME = os.getenv('DB_USERNAME')
 PASSWORD = os.getenv('DB_PASSWORD')
 
-def get_db_connection():
-    conn_str = f'DRIVER={{SQL Server}};SERVER={SERVER};DATABASE={DATABASE};Trusted_Connection=yes;'
-    return pyodbc.connect(conn_str)
+conn = pyodbc.connect(f'DRIVER={{SQL Server}};SERVER={SERVER};DATABASE={DATABASE};Trusted_Connection=yes;')
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Fetch data from MSSQL
+query = "SELECT TOP 10 * FROM FiscalNote"
+data = pd.read_sql(query, conn)
 
-@app.route('/get_top_10')
-def get_top_10():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        table_name = 'FiscalNote'
-        query = f"SELECT TOP 10 * FROM {table_name}"
-        cursor.execute(query)
-        
-        columns = [column[0] for column in cursor.description]
-        rows = []
-        for row in cursor.fetchall():
-            rows.append(dict(zip(columns, row)))
-        
-        conn.close()
-        return jsonify({'data': rows, 'columns': columns, 'table_name': table_name})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(debug=True)
+# Show the data
+print(data.head())
