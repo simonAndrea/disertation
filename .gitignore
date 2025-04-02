@@ -1,0 +1,12 @@
+# Ignore .env file (environment configuration)
+.env
+
+# Ignore log files
+*.log
+
+# Ignore OS-specific files (Windows, macOS)
+Thumbs.db
+.DS_Store
+
+# Ignore VS Code settings folder
+.vscode/
