@@ -1,8 +1,4 @@
-import os, pyodbc, pandas as pd, streamlit as st, plotly.express as px
-from datetime import timedelta
-import queries
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import streamlit as st
 
 st.set_page_config(
     page_title="OptiView",
