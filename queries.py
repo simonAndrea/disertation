@@ -123,3 +123,19 @@ def getMembershipForHistogram(id=None):
     
     with get_connection() as conn:
         return pd.read_sql(query, conn)
+
+def get_forecast_data():
+    query = """
+    SELECT 
+        CAST(DocumentDate AS DATE) AS Date,
+        SUM(TotalPayment) AS Sales
+    FROM FiscalNote
+    WHERE 
+        DocumentStateId <> 35
+        AND TotalPayment > 0
+    GROUP BY CAST(DocumentDate AS DATE)
+    ORDER BY Date;
+    """
+    
+    with get_connection() as conn:
+        return pd.read_sql(query, conn)
