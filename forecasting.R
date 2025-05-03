@@ -31,7 +31,8 @@ format_data <- function(data) {
         data$log_value <- log(data$value)
         
         # Convert to tibble
-        data <- as_tibble(data) 
+        # data <- as_tibble(data) 
+        data <- tsibble(data, index=date)
         return(data)
     }, error = function(e) {
         print(paste("Error in format_data:", e))
@@ -41,15 +42,15 @@ format_data <- function(data) {
 
 data_plotting <- function(data) {
     #Resample for Weekly Value (Sum) and Monthly value
-    p1 <- ggplot(data, aes(x = as.Date(data$date), y = value)) + 
+    p1 <- ggplot(data, aes(x = as.Date(date), y = value)) + 
     geom_line(color = "dodgerblue") + 
     labs(title = "Daily Value", y = "Value", x = "Date") +
     scale_x_date(limits = c(as.Date("2020-07-01"), as.Date("2022-06-30"))) +
     theme_minimal()
 
     weekly_df <- data %>%
-    mutate(date = as.Date(as.Date(data$date), origin = "1970-01-01")) %>%
-    mutate(week = floor_date(as.Date(data$date), "week")) %>%
+    mutate(date = as.Date(as.Date(date), origin = "1970-01-01")) %>%
+    mutate(week = floor_date(as.Date(date), "week")) %>%
     group_by(week) %>%
     summarise(value = sum(value, na.rm = TRUE), .groups = "drop")
 
@@ -60,8 +61,8 @@ data_plotting <- function(data) {
     theme_minimal()
 
     monthly_df <- data %>%
-    mutate(date = as.Date(as.Date(data$date), origin = "1970-01-01")) %>%
-    mutate(month = floor_date(as.Date(data$date), "month")) %>%
+    mutate(date = as.Date(as.Date(date), origin = "1970-01-01")) %>%
+    mutate(month = floor_date(as.Date(date), "month")) %>%
     group_by(month) %>%
     summarise(value = sum(value, na.rm = TRUE), .groups = "drop") 
 
@@ -86,12 +87,35 @@ data_plotting <- function(data) {
 
 
 seasonality_checking <- function(data) {
-    weekly_plot <- data |> gg_season(value, periold = "week") + labs(title='Weekly seasonality')
+    data$date <- as.Date(data$date)
+    data <- tsibble(data, index=date)
+    data <- data %>% fill_gaps()
 
-    monthly_plot <- data |> gg_season(value, pleriod = "monlth") +
-    labs(title='Monthly seasonality')
+    print(head(data))
+    weekly_plot <- data |> 
+        gg_season(value, period = "week") + 
+        labs(title = 'Weekly seasonality', x = 'Day of Week') +
+        scale_x_date(breaks = "1 week", labels = scales::date_format("%Y-%m-%d"))  # Ensure date formatting on x-axis
 
-    return (list(weekly_plot, monthly_plot, yearly_plot))
+    # Monthly seasonality plot
+    monthly_plot <- data |> 
+        gg_season(value, period = "month") + 
+        labs(title = 'Monthly seasonality', x = 'Month') +
+        scale_x_date(labels = scales::date_format("%Y-%m-%d"), date_breaks = "1 month")  # Ensure date formatting on x-axis
+
+
+    # Convert to plotly
+    weekly_plotly <- ggplotly(weekly_plot)
+    monthly_plotly <- ggplotly(monthly_plot)
+
+    # Convert to JSON
+    weekly_json <- plotly::plotly_json(weekly_plotly, jsonedit = FALSE)
+    monthly_json <- plotly::plotly_json(monthly_plotly, jsonedit = FALSE)
+
+    return(list(
+        weekly_json = weekly_json,
+        monthly_json = monthly_json
+    ))
 }
 
 stationarity_checking <- function(data) {

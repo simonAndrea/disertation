@@ -33,19 +33,12 @@ def plot_sales_data(data, title):
     )
     st.plotly_chart(fig)
 
-
-# Caching function for loading data (to prevent unnecessary reruns)
-@st.cache_data(ttl=300, show_spinner=False)  # 5 minutes cache
-def load_all_sales_data():
-    all_data = queries.get_sales_data()
-    all_data['Date'] = pd.to_datetime(all_data['Date'])
-    return all_data
-
 # Function that wraps everything (including session state management)
 def date_range_plot():
     # Load all data to get max/min dates
     all_data = queries.get_sales_data()
     all_data['Date'] = pd.to_datetime(all_data['Date'])
+    print(all_data)
 
     if all_data.empty:
         st.warning("No data available.")
