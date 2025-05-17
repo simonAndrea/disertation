@@ -1,6 +1,7 @@
 import os, pyodbc, pandas as pd, streamlit as st, plotly.express as px
 from datetime import timedelta
 import queries
+import plotly.graph_objects as go
 
 st.set_page_config(
     page_title="OptiView",
@@ -13,39 +14,53 @@ with open('main_style.css') as f:
 
 st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
 
+
 st.title(":bar_chart: Visualization Dashboards")
 
 st.subheader('Total Sales Over Time')
 
 def plot_sales_data(data, title):
-    fig = px.line(data, x='Date', y='TotalSales', title=title)
-    fig.update_traces(line=dict(color='#1C4E80'))
+    # Ensure data types are correct and sort by date
+    data["TotalSales"] = pd.to_numeric(data["TotalSales"], errors='coerce')
+    data['Date'] = pd.to_datetime(data['Date'])
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=data['Date'],
+        y=data['TotalSales'],
+        mode='lines+markers',
+        line=dict(color='#1C4E80', width=2),
+        marker=dict(size=4),
+        name='Total Sales'
+    ))
+
+    # Update layout with specific y-axis range and format
     fig.update_layout(
+        title=title,
+        xaxis_title='Date',
+        yaxis_title='Total Sales',
         xaxis=dict(
-            tickfont=dict(color='#202020', size=14),
-            title_font=dict(color='#202020'),
-            tickformat='%Y-%m-%d'  # Format the date to show only year-month-day
+            tickformat='%Y-%m-%d',
+            tickfont=dict(size=12, color='#202020'),
+            title_font=dict(size=14, color='#202020')
         ),
         yaxis=dict(
-            tickfont=dict(color='#202020', size=14),
-            title_font=dict(color='#202020')
-        )
+            tickfont=dict(size=12, color='#202020'),
+            title_font=dict(size=14, color='#202020') # Set y-axis range
+        ),
+        font=dict(color='#202020'),
+        margin=dict(t=60, b=40),
+        height=500
     )
-    st.plotly_chart(fig)
 
-
-# Caching function for loading data (to prevent unnecessary reruns)
-@st.cache_data(ttl=300, show_spinner=False)  # 5 minutes cache
-def load_all_sales_data():
-    all_data = queries.get_sales_data()
-    all_data['Date'] = pd.to_datetime(all_data['Date'])
-    return all_data
+    st.plotly_chart(fig, use_container_width=True)
 
 # Function that wraps everything (including session state management)
 def date_range_plot():
     # Load all data to get max/min dates
     all_data = queries.get_sales_data()
     all_data['Date'] = pd.to_datetime(all_data['Date'])
+    all_data['TotalSales'] = pd.to_numeric(all_data['TotalSales'], errors='coerce')
 
     if all_data.empty:
         st.warning("No data available.")
@@ -86,7 +101,7 @@ def date_range_plot():
             if data.empty:
                 st.info("No sales data found for the selected range.")
             else:
-                plot_sales_data(data, f"Total Sales from {start_date} to {end_date}")
+                plot_sales_data(data[["Date", "TotalSales"]], f"Total Sales from {start_date} to {end_date}")
 
 # --- Main ---
 date_range_plot()
@@ -121,13 +136,33 @@ def plotSitePerformance():
     data = queries.getSitePerformance()
     data['SiteId'] = data['SiteId'].astype(str)
 
+    site_names = {
+        "5": "Szuper Diszkont",
+        "6": "Szuper Market",
+        "7": "Szuper Csemege",
+        "8": "Szuper Kokereszt",
+        "9": "Szuper Horizont",
+        "10": "Merkur Sfantu Gheorghe",
+        "11": "Merkur Centrum",
+        "12": "Merkur Nagyret",
+        "14": "Merkur Bethlen",
+        "15": "Merkur Aruhaz",
+        "25": "Merkur Tudor",
+        "26": "Merkur Dozsa",
+        "31": "Merkur Reghin",
+        "32": "Merkur Oltmezo",
+        "33": "Merkur Fantanele"
+    }
+
+    data['SiteName'] = data['SiteId'].map(site_names)
+
     # Plot
     fig = px.bar(
         data,
         x='TotalAmount',
-        y='SiteId',
+        y='SiteName',
         orientation='h',
-        labels={'SiteId': 'Site', 'TotalAmount': 'Total Amount'},
+        labels={'SiteName': 'Site', 'TotalAmount': 'Total Amount'},
     )
 
     fig.update_traces(marker_color='#153d64')
@@ -155,6 +190,26 @@ def plot_payment_methods(selected_date=None):
     data['CashAmount'] = data['CashAmount'].astype(float)
     data['CardAmount'] = data['CardAmount'].astype(float)
     data['TicketAmount'] = data['TicketAmount'].astype(float)
+
+    site_names = {
+        "5": "Szuper Diszkont",
+        "6": "Szuper Market",
+        "7": "Szuper Csemege",
+        "8": "Szuper Kokereszt",
+        "9": "Szuper Horizont",
+        "10": "Merkur Sfantu Gheorghe",
+        "11": "Merkur Centrum",
+        "12": "Merkur Nagyret",
+        "14": "Merkur Bethlen",
+        "15": "Merkur Aruhaz",
+        "25": "Merkur Tudor",
+        "26": "Merkur Dozsa",
+        "31": "Merkur Reghin",
+        "32": "Merkur Oltmezo",
+        "33": "Merkur Fantanele"
+    }
+    
+    data['SiteName'] = data['SiteId'].map(site_names)
     
     if data.empty:
         st.info("No payment data available for selected date.")
@@ -162,7 +217,7 @@ def plot_payment_methods(selected_date=None):
 
     # Create stacked bar chart
     fig = px.bar(data, 
-                 x='SiteId', 
+                 x='SiteName', 
                  y=['CashAmount', 'CardAmount', 'TicketAmount'],
                  labels={'value': 'Number of Transactions', 'SiteId': 'Site ID'},
                  color_discrete_sequence=['#0091D5', '#EA6A47', '#1C4E80'])
@@ -180,6 +235,7 @@ def plot_payment_methods(selected_date=None):
         xaxis=dict(
             tickfont=dict(color='#000000',size=14),
             title_font=dict(color='#000000', size=14),
+            tickangle=45
         ))
     
     

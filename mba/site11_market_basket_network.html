@@ -1,0 +1,424 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 750px;
+                 background-color: #F1F1F1;
+                 position: relative;
+                 float: left;
+             }
+
+             #loadingBar {
+                position: absolute;
+                top:0px;
+                left:20%;
+                width: 100%;
+                height: 750px;
+                background-color: #F1F1F1;
+                -webkit-transition: all 0.5s ease;
+                -moz-transition: all 0.5s ease;
+                -ms-transition: all 0.5s ease;
+                -o-transition: all 0.5s ease;
+                transition: all 0.5s ease;
+                opacity: 1;
+            }
+
+            #bar {
+                position: absolute;
+                top:400px;
+                left:0px;
+                width:20px;
+                height:20px;
+                margin:auto auto auto auto;
+                border-radius: 11px;
+                background: #153d64; /* Blue color */
+            }
+
+            #text {
+                position: absolute;
+                top:400px;
+                left:530px;
+                width:30px;
+                height:50px;
+                margin:auto auto auto auto;
+                font-size: 20px;
+                color: #202020;
+                font-family: "Inter", sans-serif; /* Streamlit-like font */
+            }
+
+             
+    
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "id": "BERE TILTOTT CSIKI PIMASZ IPA STICLA 500ML", "label": "BERE TILTOTT CSIKI PIMASZ IPA STICLA 500ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "STICLA BERE 500ML CSIKI", "label": "STICLA BERE 500ML CSIKI", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BERE NEFILTRATA CSIKI STICLA 500ML", "label": "BERE NEFILTRATA CSIKI STICLA 500ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DR.OETKER VOPSEA PT.OUA VERDE 10 OUA CARMIN 5ML", "label": "DR.OETKER VOPSEA PT.OUA VERDE 10 OUA CARMIN 5ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DR.OETKER VOPSEA PT.OUA ROSU 10 OUA CARMIN 5ML", "label": "DR.OETKER VOPSEA PT.OUA ROSU 10 OUA CARMIN 5ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DR.OETKER VOPSEA PT.OUA GALBEN 10 OUA CARMIN 5ML", "label": "DR.OETKER VOPSEA PT.OUA GALBEN 10 OUA CARMIN 5ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DR.OETKER VOPSEA PT.OUA VIOLET 10 OUA CARMIN 5ML", "label": "DR.OETKER VOPSEA PT.OUA VIOLET 10 OUA CARMIN 5ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "HRANA USC.PT.PISICI ADULT CU VITA WHISKAS 800G", "label": "HRANA USC.PT.PISICI ADULT CU VITA WHISKAS 800G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "LAPTE DE CONSUM 3.5% GRASIME FRISS CUTIE 1L", "label": "LAPTE DE CONSUM 3.5% GRASIME FRISS CUTIE 1L", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DR.OETKER ZAHAR VANILINAT 8G", "label": "DR.OETKER ZAHAR VANILINAT 8G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_MORCOVI", "label": "_MORCOVI", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_PATRUNJEL RADACINA KG", "label": "_PATRUNJEL RADACINA KG", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DR.OETKER VOPSEA PT.OUA ALBASTRU 10 OUA CARMIN 5ML", "label": "DR.OETKER VOPSEA PT.OUA ALBASTRU 10 OUA CARMIN 5ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "MAZARE KLEINE WUNDER KELVEDON KERTIMAG 250G", "label": "MAZARE KLEINE WUNDER KELVEDON KERTIMAG 250G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "SEMINTE LEGUME GARDENSEED KERTIMAG", "label": "SEMINTE LEGUME GARDENSEED KERTIMAG", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BERE TILTOTT CSIKI AFINE 500ML", "label": "BERE TILTOTT CSIKI AFINE 500ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "COLORANT ALIMENTAR ALBASTRU MAXCOLOR 30ML", "label": "COLORANT ALIMENTAR ALBASTRU MAXCOLOR 30ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "COLORANT ALIMENTAR VERDE MAXCOLOR 30ML", "label": "COLORANT ALIMENTAR VERDE MAXCOLOR 30ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "COLORANT ALIMENTAR PORTOCALIU MAXCOLOR 30ML", "label": "COLORANT ALIMENTAR PORTOCALIU MAXCOLOR 30ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "SANGERETE VRAC", "label": "SANGERETE VRAC", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CALTABOS VRAC", "label": "CALTABOS VRAC", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BERE IGAZI TILTOTT MEZES SOR 9% 500ML", "label": "BERE IGAZI TILTOTT MEZES SOR 9% 500ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BERE TILTOTT CSIKI GYOMBER CHILI STICLA 500ML", "label": "BERE TILTOTT CSIKI GYOMBER CHILI STICLA 500ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "RULOURI FARA GLUTEN CU CREMA DE CACAO ALASKA 18G", "label": "RULOURI FARA GLUTEN CU CREMA DE CACAO ALASKA 18G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "RULOURI FARA GLUTEN CU CREMA DE ALUNE ALASKA 18G", "label": "RULOURI FARA GLUTEN CU CREMA DE ALUNE ALASKA 18G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "HRANA COMPLETA PENTRU PISICI ADULTE CU VITA PREVITAL 100G", "label": "HRANA COMPLETA PENTRU PISICI ADULTE CU VITA PREVITAL 100G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "HRANA COMPLETA PENTRU PISICI ADULTE CU PUI PREVITAL 100G", "label": "HRANA COMPLETA PENTRU PISICI ADULTE CU PUI PREVITAL 100G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CERBONA TERCI DE OVAZ CU SFECLA\u0026MERE 50G", "label": "CERBONA TERCI DE OVAZ CU SFECLA\u0026MERE 50G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CERBONA TERCI DE OVAZ CU PRUNE 50G", "label": "CERBONA TERCI DE OVAZ CU PRUNE 50G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CERBONA TERCI DE OVAZ CU MANGO 50G", "label": "CERBONA TERCI DE OVAZ CU MANGO 50G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CERBONA TERCI DE OVAZ CU CAISE 50G", "label": "CERBONA TERCI DE OVAZ CU CAISE 50G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "SEMINTE FASOLE CHEROKEE/MAXIDOR/SCUBA KERTIMAG 50G", "label": "SEMINTE FASOLE CHEROKEE/MAXIDOR/SCUBA KERTIMAG 50G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BERE TILTOTT BARNA SOR 7% 500ML", "label": "BERE TILTOTT BARNA SOR 7% 500ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BERE TILTOTT CSIKI VADMALNA CU VITAMINE STICLA 500ML", "label": "BERE TILTOTT CSIKI VADMALNA CU VITAMINE STICLA 500ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_GULII", "label": "_GULII", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_TELINA", "label": "_TELINA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PAIE MAGICA CU AROMA DE CIOCOLATA MILKY SIP 5*6G", "label": "PAIE MAGICA CU AROMA DE CIOCOLATA MILKY SIP 5*6G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PAIE MAGICA CU AROMA DE BISCUITI MILKY SIP 5*6G", "label": "PAIE MAGICA CU AROMA DE BISCUITI MILKY SIP 5*6G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PAIE MAGICA CU AROMA DE VANILIE MILKY SIP 5*6G", "label": "PAIE MAGICA CU AROMA DE VANILIE MILKY SIP 5*6G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_TELINA CU FRUNZA", "label": "_TELINA CU FRUNZA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CERBONA TERCI DE OVAZ CU FRUCTE DE PADURE 55G", "label": "CERBONA TERCI DE OVAZ CU FRUCTE DE PADURE 55G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BERE TILTOTT IGAZI SOR 6% 500ML", "label": "BERE TILTOTT IGAZI SOR 6% 500ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BERE 6% SZEKELY SOR 500ML", "label": "BERE 6% SZEKELY SOR 500ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BERE TILTOTT CSIKI KREM SOR 4.5% 500ML", "label": "BERE TILTOTT CSIKI KREM SOR 4.5% 500ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BATON CIOCOLATA CU CREMA DE ARAHIDE ROSHEN 38G", "label": "BATON CIOCOLATA CU CREMA DE ARAHIDE ROSHEN 38G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BATON CIOCOLATA CU LAPTE UMPL.DE CR.DE ZAHAR ARS ROSHEN 43G", "label": "BATON CIOCOLATA CU LAPTE UMPL.DE CR.DE ZAHAR ARS ROSHEN 43G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BATON CIOCOLATA LAPTE UMPL.DE CREMA CARAMEL ROSHEN 40G", "label": "BATON CIOCOLATA LAPTE UMPL.DE CREMA CARAMEL ROSHEN 40G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BATON CIOCOLATA CU UMPL.CU GUST DE CIOC.FONDANT ROSHEN 43G", "label": "BATON CIOCOLATA CU UMPL.CU GUST DE CIOC.FONDANT ROSHEN 43G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BERE TILTOTT CSIKI GOLD STICLA 500ML", "label": "BERE TILTOTT CSIKI GOLD STICLA 500ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CERBONA BATON CEREALE FARA GLUTEN FRUCTE 35G", "label": "CERBONA BATON CEREALE FARA GLUTEN FRUCTE 35G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CERBONA BATON CEREALE ZMEURA FARA GLUTEN 35G", "label": "CERBONA BATON CEREALE ZMEURA FARA GLUTEN 35G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CERBONA BATON CEREALE FARA GLUTEN VISINE\u0026CIOCOLATA 35G", "label": "CERBONA BATON CEREALE FARA GLUTEN VISINE\u0026CIOCOLATA 35G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "MAGHIRAN MACINAT MARCO POLO 5G", "label": "MAGHIRAN MACINAT MARCO POLO 5G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BUSUIOC MACINAT MARCO POLO 5G", "label": "BUSUIOC MACINAT MARCO POLO 5G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "OREGANO MACINAT MARCO POLO 7G", "label": "OREGANO MACINAT MARCO POLO 7G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CERBONA TERCI DE OVAZ CU CIOCOLATA 55G", "label": "CERBONA TERCI DE OVAZ CU CIOCOLATA 55G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "ELAN BRANZA TOPITA CREMOASA 100G", "label": "ELAN BRANZA TOPITA CREMOASA 100G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "ELAN BRANZA TOPITA EMMENTALER 100G", "label": "ELAN BRANZA TOPITA EMMENTALER 100G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "ELAN BRANZA TOPITA CU SUNCA AFUMATA 100G", "label": "ELAN BRANZA TOPITA CU SUNCA AFUMATA 100G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_FASOLE ALB MARE KG", "label": "_FASOLE ALB MARE KG", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DR.OETKER AMONIU PENTRU PRAJITURI 7G", "label": "DR.OETKER AMONIU PENTRU PRAJITURI 7G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DR.OETKER PRAF DE COPT 10G", "label": "DR.OETKER PRAF DE COPT 10G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_PATRUNJEL FRUNZE LEGATURA", "label": "_PATRUNJEL FRUNZE LEGATURA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_SFECLA ROSIE", "label": "_SFECLA ROSIE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DR.OETKER DROJDIE USCATA 7G", "label": "DR.OETKER DROJDIE USCATA 7G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "ESENTA DE ROM ADAZIA 25ML", "label": "ESENTA DE ROM ADAZIA 25ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BONDUELLE MAZARE VERDE BOABE 200G", "label": "BONDUELLE MAZARE VERDE BOABE 200G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_ARDEI CAPIA GALBEN", "label": "_ARDEI CAPIA GALBEN", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PASTE MELCISORI CU 8 OUA GYERMELYI 250G", "label": "PASTE MELCISORI CU 8 OUA GYERMELYI 250G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_DOVLECEI KG", "label": "_DOVLECEI KG", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PULPE DE PUI INFERIOARE REFR.VRAC SZEKELY CSURKE", "label": "PULPE DE PUI INFERIOARE REFR.VRAC SZEKELY CSURKE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_RIDICHI ROSU LEGATURA", "label": "_RIDICHI ROSU LEGATURA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_VARZA NOUA", "label": "_VARZA NOUA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "ZAHAR PUDRA KORONAS 500G", "label": "ZAHAR PUDRA KORONAS 500G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "UNT MARKAZOTT 82% MEGGLE 200G", "label": "UNT MARKAZOTT 82% MEGGLE 200G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "GOBE PESMET 400G", "label": "GOBE PESMET 400G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "UNT 82% GRASIME MASLO POLSKIE MLEKOVITA 200G", "label": "UNT 82% GRASIME MASLO POLSKIE MLEKOVITA 200G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_CONOPIDA", "label": "_CONOPIDA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PALL MALL S-LINE FLOW BLUE/PURPLE", "label": "PALL MALL S-LINE FLOW BLUE/PURPLE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_VINETE", "label": "_VINETE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BRANZA DE VACA VRAC KERESZTURI", "label": "BRANZA DE VACA VRAC KERESZTURI", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_ARDEI IUTE", "label": "_ARDEI IUTE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_SALATA VERDE BUC", "label": "_SALATA VERDE BUC", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PULPE DE PUI SUPERIOARE REFR.VRAC SZEKELY CSURKE", "label": "PULPE DE PUI SUPERIOARE REFR.VRAC SZEKELY CSURKE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_ROSII DE GRADINA ROMANIA", "label": "_ROSII DE GRADINA ROMANIA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "FAINA BANEASA TIP 000 1KG", "label": "FAINA BANEASA TIP 000 1KG", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PAINE CU CARTOFI PRIMA 500G", "label": "PAINE CU CARTOFI PRIMA 500G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "10 OUA PROASPATA DE LA GAINA CRESCUTA LA SOL COD 2 MAR L 63-73G", "label": "10 OUA PROASPATA DE LA GAINA CRESCUTA LA SOL COD 2 MAR L 63-73G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_KIWI KG", "label": "_KIWI KG", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_BANANE", "label": "_BANANE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_PORTOCALE^2 A nu se consuma coaja", "label": "_PORTOCALE^2 A nu se consuma coaja", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "GOBE 6  L OUA PROASPETE", "label": "GOBE 6  L OUA PROASPETE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_ROSII PRUNISOR", "label": "_ROSII PRUNISOR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "WINSTON SUPERSLIMS SILVER", "label": "WINSTON SUPERSLIMS SILVER", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CREMWURSTI PIEPT PUI BENEDEK", "label": "CREMWURSTI PIEPT PUI BENEDEK", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_CARTOFI ALBI", "label": "_CARTOFI ALBI", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "FRISCA PENTRU GATIT UHT 10% MEGGLE 200ML", "label": "FRISCA PENTRU GATIT UHT 10% MEGGLE 200ML", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_CIUPERCI", "label": "_CIUPERCI", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_STRUGURI NEGRI", "label": "_STRUGURI NEGRI", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "SMANTANA 20% GRASIME FRISS 900G", "label": "SMANTANA 20% GRASIME FRISS 900G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "ULEI KUNSAGI EDEN 1L", "label": "ULEI KUNSAGI EDEN 1L", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_GRAPEFRUIT ROSU^2 A nu se consuma coaja", "label": "_GRAPEFRUIT ROSU^2 A nu se consuma coaja", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_CEAPA ROSIE", "label": "_CEAPA ROSIE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "GOBE LAPTE 1.5% 1L", "label": "GOBE LAPTE 1.5% 1L", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "GOBE 20 OUA PROASPETE M DIN GHEORGHENI", "label": "GOBE 20 OUA PROASPETE M DIN GHEORGHENI", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "GOBE 10 OUA PROASPETE M DE LA GAINI CRESCUTE IN AER LIBER", "label": "GOBE 10 OUA PROASPETE M DE LA GAINI CRESCUTE IN AER LIBER", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CASCAVAL MAASDAMER 45% FN", "label": "CASCAVAL MAASDAMER 45% FN", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "SALAM POTCOAVA CRIS-TIM", "label": "SALAM POTCOAVA CRIS-TIM", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "BRANZA TOPITA CU SMANTANA GORDON 125G", "label": "BRANZA TOPITA CU SMANTANA GORDON 125G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CONSERVA MAZARE VERDE GREEN PEAS 400G", "label": "CONSERVA MAZARE VERDE GREEN PEAS 400G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CHEFIR 3.3% FRISS 330G", "label": "CHEFIR 3.3% FRISS 330G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_ROSII CHERRY VRAC", "label": "_ROSII CHERRY VRAC", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "LAPTE UHT PT.CAFEA 6% GRASIME 10*7.5G MEGGLE", "label": "LAPTE UHT PT.CAFEA 6% GRASIME 10*7.5G MEGGLE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DROJDIE PROASPATA BUDAFOK 50G", "label": "DROJDIE PROASPATA BUDAFOK 50G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "SUNCA PRAGA CAROLI", "label": "SUNCA PRAGA CAROLI", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_MERE GOLDEN", "label": "_MERE GOLDEN", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PAINE GRAHAM BRUTARIA MADARAS 500G", "label": "PAINE GRAHAM BRUTARIA MADARAS 500G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_VARZA ALBA", "label": "_VARZA ALBA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "UNT 82% GRASIME GORDON 200G", "label": "UNT 82% GRASIME GORDON 200G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DR.OETKER BUDINCA VANILIE 40G", "label": "DR.OETKER BUDINCA VANILIE 40G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "ELAN UNT 60% GRASIME 200G", "label": "ELAN UNT 60% GRASIME 200G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "FAINA BL-55 GYERMELYI 1KG", "label": "FAINA BL-55 GYERMELYI 1KG", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CREMWURSTI DE PUI CRISTUR", "label": "CREMWURSTI DE PUI CRISTUR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_ROSII CHERRY CASEROLA 500G", "label": "_ROSII CHERRY CASEROLA 500G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CASCAVAL TRAPPIST 40% AMMERLAND", "label": "CASCAVAL TRAPPIST 40% AMMERLAND", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PUFULETI GUSTO 45G", "label": "PUFULETI GUSTO 45G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "MUSTAR CRENVURSTILA 270G", "label": "MUSTAR CRENVURSTILA 270G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "APA MINERALA NATURALA CARBOGAZOASA PERLA HARGHITEI  2L", "label": "APA MINERALA NATURALA CARBOGAZOASA PERLA HARGHITEI  2L", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_CLEMENTINA^2 A nu se consuma coaja", "label": "_CLEMENTINA^2 A nu se consuma coaja", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DROJDIE PROASPATA BRAVO 50G", "label": "DROJDIE PROASPATA BRAVO 50G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PULPE PUI CU SPATE REFR.VRAC SZEKELY CSURKE", "label": "PULPE PUI CU SPATE REFR.VRAC SZEKELY CSURKE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "GRASIME VEGETALA TARTINABILA CU 70% GRASIME RAMA 250G", "label": "GRASIME VEGETALA TARTINABILA CU 70% GRASIME RAMA 250G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "ELAN ULEI RAFINAT DE FLOAREA SOARELUI 1L", "label": "ELAN ULEI RAFINAT DE FLOAREA SOARELUI 1L", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "UNT 65% GRASIME FRISS 180G", "label": "UNT 65% GRASIME FRISS 180G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "LAPTE DE CONSUM 1.5% GRASIME FRISS CUTIE 1L", "label": "LAPTE DE CONSUM 1.5% GRASIME FRISS CUTIE 1L", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CARNE TOCATA PORC VRAC", "label": "CARNE TOCATA PORC VRAC", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_LAMAIE^2 A nu se consuma coaja", "label": "_LAMAIE^2 A nu se consuma coaja", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "GOBE PAINE CU SECARA SI CARTOFI KG", "label": "GOBE PAINE CU SECARA SI CARTOFI KG", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_PORTOCALE PLASA BUC^2 A nu se consuma coaja", "label": "_PORTOCALE PLASA BUC^2 A nu se consuma coaja", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "GOBE PAINE DE CASA CU CARTOFI RACU 1KG", "label": "GOBE PAINE DE CASA CU CARTOFI RACU 1KG", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "OTET BISTRITA 1L", "label": "OTET BISTRITA 1L", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "APA MINERALA NATURALA CARBOGAZIFICATA CONTINUT REDUS CO2 TUSNAD 2L", "label": "APA MINERALA NATURALA CARBOGAZIFICATA CONTINUT REDUS CO2 TUSNAD 2L", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_ARDEI ALB BIANCA", "label": "_ARDEI ALB BIANCA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_CASTRAVETI FABIO", "label": "_CASTRAVETI FABIO", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "SUNCA DE PORC SISSI GASTRO CAROLI", "label": "SUNCA DE PORC SISSI GASTRO CAROLI", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_MANDARINE^2 A nu se consuma coaja", "label": "_MANDARINE^2 A nu se consuma coaja", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "SMANTANA 20% GRASIME FRISS 170G", "label": "SMANTANA 20% GRASIME FRISS 170G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_CASTRAVETI CORNISON", "label": "_CASTRAVETI CORNISON", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CAFEA JACOBS KRONUNG 500G", "label": "CAFEA JACOBS KRONUNG 500G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_ARDEI GRAS ROMANIA", "label": "_ARDEI GRAS ROMANIA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PARIZER CRISTUR", "label": "PARIZER CRISTUR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_MERE ROSII", "label": "_MERE ROSII", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PAINE ALBA SECUIASCA CU CARTOFI FEL.HARMOPAN 500G", "label": "PAINE ALBA SECUIASCA CU CARTOFI FEL.HARMOPAN 500G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "DANONE ACTIVIA NATUR 125G", "label": "DANONE ACTIVIA NATUR 125G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PULPE PORC FARA OS", "label": "PULPE PORC FARA OS", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PASTE ATA PAIANJENULUI CU 8 OUA GYERMELYI 250G", "label": "PASTE ATA PAIANJENULUI CU 8 OUA GYERMELYI 250G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_CEAPA GALBENA", "label": "_CEAPA GALBENA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "MERKUR SACOSA ECO RECICLABILA", "label": "MERKUR SACOSA ECO RECICLABILA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "GOBE PAINE ALBA DE CASA CU CARTOFI KG", "label": "GOBE PAINE ALBA DE CASA CU CARTOFI KG", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "COTLET PORC FARA OS", "label": "COTLET PORC FARA OS", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_USTUROI", "label": "_USTUROI", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PATE PORC BUCEGI 120G", "label": "PATE PORC BUCEGI 120G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "OUA PROASPETE M DIN GHEORGHENI 1*10", "label": "OUA PROASPETE M DIN GHEORGHENI 1*10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_ARDEI ROSU CALIFORNIA", "label": "_ARDEI ROSU CALIFORNIA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "SANA 3.6% FRISS 900G", "label": "SANA 3.6% FRISS 900G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "PIEPT DE PUI FARA OS REFR.VRAC SZEKELY CSURKE", "label": "PIEPT DE PUI FARA OS REFR.VRAC SZEKELY CSURKE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "GOBE 10 OUA PROASPETE L", "label": "GOBE 10 OUA PROASPETE L", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_ARDEI ROSU CAPIA", "label": "_ARDEI ROSU CAPIA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "_ROSII VRAC", "label": "_ROSII VRAC", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "SMANTANA 20% GRASIME FRISS 300G", "label": "SMANTANA 20% GRASIME FRISS 300G", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "SANA 3.6% PET FRISS 330G", "label": "SANA 3.6% PET FRISS 330G", "shape": "dot", "size": 10}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "BERE TILTOTT CSIKI PIMASZ IPA STICLA 500ML", "title": "Confidence: 0.77\u003cbr\u003eLift: 271.15", "to": "STICLA BERE 500ML CSIKI", "width": 1}, {"arrows": "to", "from": "BERE NEFILTRATA CSIKI STICLA 500ML", "title": "Confidence: 0.68\u003cbr\u003eLift: 240.19", "to": "STICLA BERE 500ML CSIKI", "width": 1}, {"arrows": "to", "from": "DR.OETKER VOPSEA PT.OUA VERDE 10 OUA CARMIN 5ML", "title": "Confidence: 0.92\u003cbr\u003eLift: 860.62", "to": "DR.OETKER VOPSEA PT.OUA ROSU 10 OUA CARMIN 5ML", "width": 1}, {"arrows": "to", "from": "DR.OETKER VOPSEA PT.OUA GALBEN 10 OUA CARMIN 5ML", "title": "Confidence: 0.75\u003cbr\u003eLift: 697.01", "to": "DR.OETKER VOPSEA PT.OUA ROSU 10 OUA CARMIN 5ML", "width": 1}, {"arrows": "to", "from": "DR.OETKER VOPSEA PT.OUA VIOLET 10 OUA CARMIN 5ML", "title": "Confidence: 0.89\u003cbr\u003eLift: 832.86", "to": "DR.OETKER VOPSEA PT.OUA ROSU 10 OUA CARMIN 5ML", "width": 1}, {"arrows": "to", "from": "HRANA USC.PT.PISICI ADULT CU VITA WHISKAS 800G", "title": "Confidence: 0.53\u003cbr\u003eLift: 20.20", "to": "LAPTE DE CONSUM 3.5% GRASIME FRISS CUTIE 1L", "width": 1}, {"arrows": "to", "from": "LAPTE DE CONSUM 3.5% GRASIME FRISS CUTIE 1L", "title": "Confidence: 0.54\u003cbr\u003eLift: 68.76", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "LAPTE DE CONSUM 3.5% GRASIME FRISS CUTIE 1L", "title": "Confidence: 0.76\u003cbr\u003eLift: 17.28", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "LAPTE DE CONSUM 3.5% GRASIME FRISS CUTIE 1L", "title": "Confidence: 0.59\u003cbr\u003eLift: 29.39", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "DR.OETKER VOPSEA PT.OUA ALBASTRU 10 OUA CARMIN 5ML", "title": "Confidence: 0.74\u003cbr\u003eLift: 694.91", "to": "DR.OETKER VOPSEA PT.OUA ROSU 10 OUA CARMIN 5ML", "width": 1}, {"arrows": "to", "from": "MAZARE KLEINE WUNDER KELVEDON KERTIMAG 250G", "title": "Confidence: 0.54\u003cbr\u003eLift: 202.96", "to": "SEMINTE LEGUME GARDENSEED KERTIMAG", "width": 1}, {"arrows": "to", "from": "BERE TILTOTT CSIKI AFINE 500ML", "title": "Confidence: 0.65\u003cbr\u003eLift: 228.64", "to": "STICLA BERE 500ML CSIKI", "width": 1}, {"arrows": "to", "from": "COLORANT ALIMENTAR ALBASTRU MAXCOLOR 30ML", "title": "Confidence: 0.52\u003cbr\u003eLift: 1651.08", "to": "COLORANT ALIMENTAR VERDE MAXCOLOR 30ML", "width": 1}, {"arrows": "to", "from": "COLORANT ALIMENTAR PORTOCALIU MAXCOLOR 30ML", "title": "Confidence: 0.53\u003cbr\u003eLift: 1681.38", "to": "COLORANT ALIMENTAR VERDE MAXCOLOR 30ML", "width": 1}, {"arrows": "to", "from": "SANGERETE VRAC", "title": "Confidence: 0.55\u003cbr\u003eLift: 1762.98", "to": "CALTABOS VRAC", "width": 1}, {"arrows": "to", "from": "BERE IGAZI TILTOTT MEZES SOR 9% 500ML", "title": "Confidence: 0.73\u003cbr\u003eLift: 257.67", "to": "STICLA BERE 500ML CSIKI", "width": 1}, {"arrows": "to", "from": "BERE TILTOTT CSIKI GYOMBER CHILI STICLA 500ML", "title": "Confidence: 0.68\u003cbr\u003eLift: 237.52", "to": "STICLA BERE 500ML CSIKI", "width": 1}, {"arrows": "to", "from": "RULOURI FARA GLUTEN CU CREMA DE CACAO ALASKA 18G", "title": "Confidence: 0.59\u003cbr\u003eLift: 1668.94", "to": "RULOURI FARA GLUTEN CU CREMA DE ALUNE ALASKA 18G", "width": 1}, {"arrows": "to", "from": "HRANA COMPLETA PENTRU PISICI ADULTE CU VITA PREVITAL 100G", "title": "Confidence: 0.50\u003cbr\u003eLift: 900.73", "to": "HRANA COMPLETA PENTRU PISICI ADULTE CU PUI PREVITAL 100G", "width": 1}, {"arrows": "to", "from": "CERBONA TERCI DE OVAZ CU SFECLA\u0026MERE 50G", "title": "Confidence: 0.67\u003cbr\u003eLift: 916.69", "to": "CERBONA TERCI DE OVAZ CU PRUNE 50G", "width": 1}, {"arrows": "to", "from": "CERBONA TERCI DE OVAZ CU SFECLA\u0026MERE 50G", "title": "Confidence: 0.58\u003cbr\u003eLift: 1011.23", "to": "CERBONA TERCI DE OVAZ CU MANGO 50G", "width": 1}, {"arrows": "to", "from": "CERBONA TERCI DE OVAZ CU PRUNE 50G", "title": "Confidence: 0.51\u003cbr\u003eLift: 903.98", "to": "CERBONA TERCI DE OVAZ CU MANGO 50G", "width": 1}, {"arrows": "to", "from": "CERBONA TERCI DE OVAZ CU PRUNE 50G", "title": "Confidence: 0.53\u003cbr\u003eLift: 609.54", "to": "CERBONA TERCI DE OVAZ CU CAISE 50G", "width": 1}, {"arrows": "to", "from": "SEMINTE FASOLE CHEROKEE/MAXIDOR/SCUBA KERTIMAG 50G", "title": "Confidence: 0.53\u003cbr\u003eLift: 199.65", "to": "SEMINTE LEGUME GARDENSEED KERTIMAG", "width": 1}, {"arrows": "to", "from": "BERE TILTOTT BARNA SOR 7% 500ML", "title": "Confidence: 0.53\u003cbr\u003eLift: 187.16", "to": "STICLA BERE 500ML CSIKI", "width": 1}, {"arrows": "to", "from": "BERE TILTOTT CSIKI VADMALNA CU VITAMINE STICLA 500ML", "title": "Confidence: 0.53\u003cbr\u003eLift: 185.99", "to": "STICLA BERE 500ML CSIKI", "width": 1}, {"arrows": "to", "from": "_GULII", "title": "Confidence: 0.73\u003cbr\u003eLift: 16.67", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_GULII", "title": "Confidence: 0.67\u003cbr\u003eLift: 33.17", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_GULII", "title": "Confidence: 0.53\u003cbr\u003eLift: 35.87", "to": "_TELINA", "width": 1}, {"arrows": "to", "from": "_MORCOVI", "title": "Confidence: 0.67\u003cbr\u003eLift: 33.17", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_MORCOVI", "title": "Confidence: 0.53\u003cbr\u003eLift: 35.87", "to": "_TELINA", "width": 1}, {"arrows": "to", "from": "_TELINA", "title": "Confidence: 0.73\u003cbr\u003eLift: 16.67", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_TELINA", "title": "Confidence: 0.67\u003cbr\u003eLift: 33.17", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_TELINA", "title": "Confidence: 0.55\u003cbr\u003eLift: 69.97", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "_PATRUNJEL RADACINA KG", "title": "Confidence: 0.73\u003cbr\u003eLift: 16.67", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_PATRUNJEL RADACINA KG", "title": "Confidence: 0.53\u003cbr\u003eLift: 35.87", "to": "_TELINA", "width": 1}, {"arrows": "to", "from": "CERBONA TERCI DE OVAZ CU MANGO 50G", "title": "Confidence: 0.54\u003cbr\u003eLift: 729.29", "to": "CERBONA TERCI DE OVAZ CU PRUNE 50G", "width": 1}, {"arrows": "to", "from": "CERBONA TERCI DE OVAZ CU MANGO 50G", "title": "Confidence: 0.66\u003cbr\u003eLift: 757.32", "to": "CERBONA TERCI DE OVAZ CU CAISE 50G", "width": 1}, {"arrows": "to", "from": "PAIE MAGICA CU AROMA DE CIOCOLATA MILKY SIP 5*6G", "title": "Confidence: 0.59\u003cbr\u003eLift: 1170.39", "to": "PAIE MAGICA CU AROMA DE BISCUITI MILKY SIP 5*6G", "width": 1}, {"arrows": "to", "from": "PAIE MAGICA CU AROMA DE CIOCOLATA MILKY SIP 5*6G", "title": "Confidence: 0.58\u003cbr\u003eLift: 1234.22", "to": "PAIE MAGICA CU AROMA DE VANILIE MILKY SIP 5*6G", "width": 1}, {"arrows": "to", "from": "PAIE MAGICA CU AROMA DE BISCUITI MILKY SIP 5*6G", "title": "Confidence: 0.56\u003cbr\u003eLift: 1124.01", "to": "PAIE MAGICA CU AROMA DE CIOCOLATA MILKY SIP 5*6G", "width": 1}, {"arrows": "to", "from": "PAIE MAGICA CU AROMA DE BISCUITI MILKY SIP 5*6G", "title": "Confidence: 0.58\u003cbr\u003eLift: 1234.22", "to": "PAIE MAGICA CU AROMA DE VANILIE MILKY SIP 5*6G", "width": 1}, {"arrows": "to", "from": "PAIE MAGICA CU AROMA DE VANILIE MILKY SIP 5*6G", "title": "Confidence: 0.59\u003cbr\u003eLift: 1170.39", "to": "PAIE MAGICA CU AROMA DE BISCUITI MILKY SIP 5*6G", "width": 1}, {"arrows": "to", "from": "PAIE MAGICA CU AROMA DE VANILIE MILKY SIP 5*6G", "title": "Confidence: 0.56\u003cbr\u003eLift: 1124.01", "to": "PAIE MAGICA CU AROMA DE CIOCOLATA MILKY SIP 5*6G", "width": 1}, {"arrows": "to", "from": "_TELINA CU FRUNZA", "title": "Confidence: 0.70\u003cbr\u003eLift: 16.06", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_TELINA CU FRUNZA", "title": "Confidence: 0.59\u003cbr\u003eLift: 29.34", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "CERBONA TERCI DE OVAZ CU CAISE 50G", "title": "Confidence: 0.54\u003cbr\u003eLift: 729.29", "to": "CERBONA TERCI DE OVAZ CU PRUNE 50G", "width": 1}, {"arrows": "to", "from": "CERBONA TERCI DE OVAZ CU CAISE 50G", "title": "Confidence: 0.51\u003cbr\u003eLift: 903.98", "to": "CERBONA TERCI DE OVAZ CU MANGO 50G", "width": 1}, {"arrows": "to", "from": "CERBONA TERCI DE OVAZ CU CAISE 50G", "title": "Confidence: 0.54\u003cbr\u003eLift: 509.39", "to": "CERBONA TERCI DE OVAZ CU FRUCTE DE PADURE 55G", "width": 1}, {"arrows": "to", "from": "CERBONA TERCI DE OVAZ CU FRUCTE DE PADURE 55G", "title": "Confidence: 0.53\u003cbr\u003eLift: 609.54", "to": "CERBONA TERCI DE OVAZ CU CAISE 50G", "width": 1}, {"arrows": "to", "from": "BERE TILTOTT IGAZI SOR 6% 500ML", "title": "Confidence: 0.53\u003cbr\u003eLift: 185.99", "to": "STICLA BERE 500ML CSIKI", "width": 1}, {"arrows": "to", "from": "BERE 6% SZEKELY SOR 500ML", "title": "Confidence: 0.53\u003cbr\u003eLift: 186.42", "to": "STICLA BERE 500ML CSIKI", "width": 1}, {"arrows": "to", "from": "BERE TILTOTT CSIKI KREM SOR 4.5% 500ML", "title": "Confidence: 0.52\u003cbr\u003eLift: 183.19", "to": "STICLA BERE 500ML CSIKI", "width": 1}, {"arrows": "to", "from": "BATON CIOCOLATA CU CREMA DE ARAHIDE ROSHEN 38G", "title": "Confidence: 0.62\u003cbr\u003eLift: 406.55", "to": "BATON CIOCOLATA CU LAPTE UMPL.DE CR.DE ZAHAR ARS ROSHEN 43G", "width": 1}, {"arrows": "to", "from": "BATON CIOCOLATA CU CREMA DE ARAHIDE ROSHEN 38G", "title": "Confidence: 0.61\u003cbr\u003eLift: 396.36", "to": "BATON CIOCOLATA LAPTE UMPL.DE CREMA CARAMEL ROSHEN 40G", "width": 1}, {"arrows": "to", "from": "BATON CIOCOLATA CU CREMA DE ARAHIDE ROSHEN 38G", "title": "Confidence: 0.50\u003cbr\u003eLift: 323.39", "to": "BATON CIOCOLATA CU UMPL.CU GUST DE CIOC.FONDANT ROSHEN 43G", "width": 1}, {"arrows": "to", "from": "BATON CIOCOLATA CU LAPTE UMPL.DE CR.DE ZAHAR ARS ROSHEN 43G", "title": "Confidence: 0.54\u003cbr\u003eLift: 351.05", "to": "BATON CIOCOLATA LAPTE UMPL.DE CREMA CARAMEL ROSHEN 40G", "width": 1}, {"arrows": "to", "from": "BATON CIOCOLATA CU UMPL.CU GUST DE CIOC.FONDANT ROSHEN 43G", "title": "Confidence: 0.56\u003cbr\u003eLift: 361.88", "to": "BATON CIOCOLATA CU LAPTE UMPL.DE CR.DE ZAHAR ARS ROSHEN 43G", "width": 1}, {"arrows": "to", "from": "BATON CIOCOLATA CU UMPL.CU GUST DE CIOC.FONDANT ROSHEN 43G", "title": "Confidence: 0.54\u003cbr\u003eLift: 351.05", "to": "BATON CIOCOLATA LAPTE UMPL.DE CREMA CARAMEL ROSHEN 40G", "width": 1}, {"arrows": "to", "from": "BATON CIOCOLATA LAPTE UMPL.DE CREMA CARAMEL ROSHEN 40G", "title": "Confidence: 0.56\u003cbr\u003eLift: 361.88", "to": "BATON CIOCOLATA CU LAPTE UMPL.DE CR.DE ZAHAR ARS ROSHEN 43G", "width": 1}, {"arrows": "to", "from": "BATON CIOCOLATA LAPTE UMPL.DE CREMA CARAMEL ROSHEN 40G", "title": "Confidence: 0.50\u003cbr\u003eLift: 323.39", "to": "BATON CIOCOLATA CU UMPL.CU GUST DE CIOC.FONDANT ROSHEN 43G", "width": 1}, {"arrows": "to", "from": "BERE TILTOTT CSIKI GOLD STICLA 500ML", "title": "Confidence: 0.50\u003cbr\u003eLift: 177.06", "to": "STICLA BERE 500ML CSIKI", "width": 1}, {"arrows": "to", "from": "CERBONA BATON CEREALE FARA GLUTEN FRUCTE 35G", "title": "Confidence: 0.54\u003cbr\u003eLift: 572.19", "to": "CERBONA BATON CEREALE ZMEURA FARA GLUTEN 35G", "width": 1}, {"arrows": "to", "from": "CERBONA BATON CEREALE FARA GLUTEN FRUCTE 35G", "title": "Confidence: 0.55\u003cbr\u003eLift: 634.83", "to": "CERBONA BATON CEREALE FARA GLUTEN VISINE\u0026CIOCOLATA 35G", "width": 1}, {"arrows": "to", "from": "CERBONA BATON CEREALE ZMEURA FARA GLUTEN 35G", "title": "Confidence: 0.55\u003cbr\u003eLift: 634.83", "to": "CERBONA BATON CEREALE FARA GLUTEN VISINE\u0026CIOCOLATA 35G", "width": 1}, {"arrows": "to", "from": "CERBONA BATON CEREALE FARA GLUTEN VISINE\u0026CIOCOLATA 35G", "title": "Confidence: 0.54\u003cbr\u003eLift: 572.19", "to": "CERBONA BATON CEREALE ZMEURA FARA GLUTEN 35G", "width": 1}, {"arrows": "to", "from": "MAGHIRAN MACINAT MARCO POLO 5G", "title": "Confidence: 0.70\u003cbr\u003eLift: 861.12", "to": "BUSUIOC MACINAT MARCO POLO 5G", "width": 1}, {"arrows": "to", "from": "MAGHIRAN MACINAT MARCO POLO 5G", "title": "Confidence: 0.62\u003cbr\u003eLift: 845.56", "to": "OREGANO MACINAT MARCO POLO 7G", "width": 1}, {"arrows": "to", "from": "BUSUIOC MACINAT MARCO POLO 5G", "title": "Confidence: 0.62\u003cbr\u003eLift: 845.56", "to": "OREGANO MACINAT MARCO POLO 7G", "width": 1}, {"arrows": "to", "from": "OREGANO MACINAT MARCO POLO 7G", "title": "Confidence: 0.70\u003cbr\u003eLift: 861.12", "to": "BUSUIOC MACINAT MARCO POLO 5G", "width": 1}, {"arrows": "to", "from": "CERBONA TERCI DE OVAZ CU CIOCOLATA 55G", "title": "Confidence: 0.54\u003cbr\u003eLift: 509.39", "to": "CERBONA TERCI DE OVAZ CU FRUCTE DE PADURE 55G", "width": 1}, {"arrows": "to", "from": "ELAN BRANZA TOPITA CREMOASA 100G", "title": "Confidence: 0.51\u003cbr\u003eLift: 416.75", "to": "ELAN BRANZA TOPITA EMMENTALER 100G", "width": 1}, {"arrows": "to", "from": "ELAN BRANZA TOPITA EMMENTALER 100G", "title": "Confidence: 0.54\u003cbr\u003eLift: 506.48", "to": "ELAN BRANZA TOPITA CREMOASA 100G", "width": 1}, {"arrows": "to", "from": "ELAN BRANZA TOPITA CU SUNCA AFUMATA 100G", "title": "Confidence: 0.51\u003cbr\u003eLift: 416.75", "to": "ELAN BRANZA TOPITA EMMENTALER 100G", "width": 1}, {"arrows": "to", "from": "ELAN BRANZA TOPITA CU SUNCA AFUMATA 100G", "title": "Confidence: 0.54\u003cbr\u003eLift: 506.48", "to": "ELAN BRANZA TOPITA CREMOASA 100G", "width": 1}, {"arrows": "to", "from": "_FASOLE ALB MARE KG", "title": "Confidence: 0.79\u003cbr\u003eLift: 18.03", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "DR.OETKER AMONIU PENTRU PRAJITURI 7G", "title": "Confidence: 0.52\u003cbr\u003eLift: 86.32", "to": "DR.OETKER PRAF DE COPT 10G", "width": 1}, {"arrows": "to", "from": "DR.OETKER PRAF DE COPT 10G", "title": "Confidence: 0.54\u003cbr\u003eLift: 69.10", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "DR.OETKER PRAF DE COPT 10G", "title": "Confidence: 0.65\u003cbr\u003eLift: 14.83", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "DR.OETKER ZAHAR VANILINAT 8G", "title": "Confidence: 0.52\u003cbr\u003eLift: 86.32", "to": "DR.OETKER PRAF DE COPT 10G", "width": 1}, {"arrows": "to", "from": "DR.OETKER ZAHAR VANILINAT 8G", "title": "Confidence: 0.66\u003cbr\u003eLift: 15.12", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_PATRUNJEL FRUNZE LEGATURA", "title": "Confidence: 0.70\u003cbr\u003eLift: 15.97", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_PATRUNJEL FRUNZE LEGATURA", "title": "Confidence: 0.51\u003cbr\u003eLift: 25.09", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_SFECLA ROSIE", "title": "Confidence: 0.60\u003cbr\u003eLift: 13.75", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "DR.OETKER DROJDIE USCATA 7G", "title": "Confidence: 0.53\u003cbr\u003eLift: 68.32", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "ESENTA DE ROM ADAZIA 25ML", "title": "Confidence: 0.52\u003cbr\u003eLift: 67.05", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "BONDUELLE MAZARE VERDE BOABE 200G", "title": "Confidence: 0.73\u003cbr\u003eLift: 16.70", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "BONDUELLE MAZARE VERDE BOABE 200G", "title": "Confidence: 0.51\u003cbr\u003eLift: 25.29", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_ARDEI CAPIA GALBEN", "title": "Confidence: 0.65\u003cbr\u003eLift: 14.90", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PASTE MELCISORI CU 8 OUA GYERMELYI 250G", "title": "Confidence: 0.79\u003cbr\u003eLift: 17.90", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_DOVLECEI KG", "title": "Confidence: 0.68\u003cbr\u003eLift: 15.48", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PULPE DE PUI INFERIOARE REFR.VRAC SZEKELY CSURKE", "title": "Confidence: 0.71\u003cbr\u003eLift: 16.16", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_RIDICHI ROSU LEGATURA", "title": "Confidence: 0.67\u003cbr\u003eLift: 15.19", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_VARZA NOUA", "title": "Confidence: 0.73\u003cbr\u003eLift: 16.56", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "ZAHAR PUDRA KORONAS 500G", "title": "Confidence: 0.51\u003cbr\u003eLift: 65.25", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "UNT MARKAZOTT 82% MEGGLE 200G", "title": "Confidence: 0.75\u003cbr\u003eLift: 17.13", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "GOBE PESMET 400G", "title": "Confidence: 0.72\u003cbr\u003eLift: 16.46", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "UNT 82% GRASIME MASLO POLSKIE MLEKOVITA 200G", "title": "Confidence: 0.66\u003cbr\u003eLift: 14.97", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_CONOPIDA", "title": "Confidence: 0.68\u003cbr\u003eLift: 15.43", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_CONOPIDA", "title": "Confidence: 0.59\u003cbr\u003eLift: 29.05", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "PALL MALL S-LINE FLOW BLUE/PURPLE", "title": "Confidence: 0.82\u003cbr\u003eLift: 18.70", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_VINETE", "title": "Confidence: 0.59\u003cbr\u003eLift: 13.41", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "BRANZA DE VACA VRAC KERESZTURI", "title": "Confidence: 0.62\u003cbr\u003eLift: 14.20", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_ARDEI IUTE", "title": "Confidence: 0.67\u003cbr\u003eLift: 15.19", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_SALATA VERDE BUC", "title": "Confidence: 0.66\u003cbr\u003eLift: 14.93", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PULPE DE PUI SUPERIOARE REFR.VRAC SZEKELY CSURKE", "title": "Confidence: 0.70\u003cbr\u003eLift: 16.02", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_ROSII DE GRADINA ROMANIA", "title": "Confidence: 0.65\u003cbr\u003eLift: 14.72", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "FAINA BANEASA TIP 000 1KG", "title": "Confidence: 0.55\u003cbr\u003eLift: 70.21", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "FAINA BANEASA TIP 000 1KG", "title": "Confidence: 0.73\u003cbr\u003eLift: 16.54", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PAINE CU CARTOFI PRIMA 500G", "title": "Confidence: 0.65\u003cbr\u003eLift: 14.90", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "10 OUA PROASPATA DE LA GAINA CRESCUTA LA SOL COD 2 MAR L 63-73G", "title": "Confidence: 0.64\u003cbr\u003eLift: 14.66", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_KIWI KG", "title": "Confidence: 0.50\u003cbr\u003eLift: 7.30", "to": "_BANANE", "width": 1}, {"arrows": "to", "from": "_KIWI KG", "title": "Confidence: 0.64\u003cbr\u003eLift: 14.54", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_BANANE", "title": "Confidence: 0.73\u003cbr\u003eLift: 16.67", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_BANANE", "title": "Confidence: 0.67\u003cbr\u003eLift: 33.17", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_PORTOCALE^2 A nu se consuma coaja", "title": "Confidence: 0.50\u003cbr\u003eLift: 7.30", "to": "_BANANE", "width": 1}, {"arrows": "to", "from": "_PORTOCALE^2 A nu se consuma coaja", "title": "Confidence: 0.64\u003cbr\u003eLift: 14.65", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "GOBE 6  L OUA PROASPETE", "title": "Confidence: 0.66\u003cbr\u003eLift: 14.98", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_ROSII PRUNISOR", "title": "Confidence: 0.63\u003cbr\u003eLift: 14.46", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "WINSTON SUPERSLIMS SILVER", "title": "Confidence: 0.70\u003cbr\u003eLift: 15.88", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "CREMWURSTI PIEPT PUI BENEDEK", "title": "Confidence: 0.74\u003cbr\u003eLift: 16.90", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_CARTOFI ALBI", "title": "Confidence: 0.56\u003cbr\u003eLift: 27.57", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_CARTOFI ALBI", "title": "Confidence: 0.75\u003cbr\u003eLift: 16.98", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "FRISCA PENTRU GATIT UHT 10% MEGGLE 200ML", "title": "Confidence: 0.67\u003cbr\u003eLift: 15.35", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_CIUPERCI", "title": "Confidence: 0.64\u003cbr\u003eLift: 14.66", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_STRUGURI NEGRI", "title": "Confidence: 0.61\u003cbr\u003eLift: 13.98", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "SMANTANA 20% GRASIME FRISS 900G", "title": "Confidence: 0.70\u003cbr\u003eLift: 16.02", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "ULEI KUNSAGI EDEN 1L", "title": "Confidence: 0.72\u003cbr\u003eLift: 16.36", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_GRAPEFRUIT ROSU^2 A nu se consuma coaja", "title": "Confidence: 0.59\u003cbr\u003eLift: 13.49", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_CEAPA ROSIE", "title": "Confidence: 0.86\u003cbr\u003eLift: 19.51", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_CEAPA ROSIE", "title": "Confidence: 0.67\u003cbr\u003eLift: 33.14", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "GOBE LAPTE 1.5% 1L", "title": "Confidence: 0.70\u003cbr\u003eLift: 16.06", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "GOBE 20 OUA PROASPETE M DIN GHEORGHENI", "title": "Confidence: 0.71\u003cbr\u003eLift: 16.15", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "GOBE 10 OUA PROASPETE M DE LA GAINI CRESCUTE IN AER LIBER", "title": "Confidence: 0.75\u003cbr\u003eLift: 17.02", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "CASCAVAL MAASDAMER 45% FN", "title": "Confidence: 0.71\u003cbr\u003eLift: 16.24", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "SALAM POTCOAVA CRIS-TIM", "title": "Confidence: 0.63\u003cbr\u003eLift: 14.32", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "BRANZA TOPITA CU SMANTANA GORDON 125G", "title": "Confidence: 0.77\u003cbr\u003eLift: 17.66", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "CONSERVA MAZARE VERDE GREEN PEAS 400G", "title": "Confidence: 0.69\u003cbr\u003eLift: 15.70", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "CHEFIR 3.3% FRISS 330G", "title": "Confidence: 0.70\u003cbr\u003eLift: 16.05", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_ROSII CHERRY VRAC", "title": "Confidence: 0.55\u003cbr\u003eLift: 27.14", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_ROSII CHERRY VRAC", "title": "Confidence: 0.62\u003cbr\u003eLift: 14.23", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "LAPTE UHT PT.CAFEA 6% GRASIME 10*7.5G MEGGLE", "title": "Confidence: 0.54\u003cbr\u003eLift: 12.33", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "DROJDIE PROASPATA BUDAFOK 50G", "title": "Confidence: 0.59\u003cbr\u003eLift: 75.38", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "DROJDIE PROASPATA BUDAFOK 50G", "title": "Confidence: 0.65\u003cbr\u003eLift: 14.83", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "SUNCA PRAGA CAROLI", "title": "Confidence: 0.68\u003cbr\u003eLift: 15.48", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_MERE GOLDEN", "title": "Confidence: 0.73\u003cbr\u003eLift: 16.56", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PAINE GRAHAM BRUTARIA MADARAS 500G", "title": "Confidence: 0.66\u003cbr\u003eLift: 15.07", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_VARZA ALBA", "title": "Confidence: 0.74\u003cbr\u003eLift: 16.87", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_VARZA ALBA", "title": "Confidence: 0.64\u003cbr\u003eLift: 31.79", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "UNT 82% GRASIME GORDON 200G", "title": "Confidence: 0.63\u003cbr\u003eLift: 14.46", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "DR.OETKER BUDINCA VANILIE 40G", "title": "Confidence: 0.53\u003cbr\u003eLift: 68.02", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "DR.OETKER BUDINCA VANILIE 40G", "title": "Confidence: 0.62\u003cbr\u003eLift: 14.07", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "ELAN UNT 60% GRASIME 200G", "title": "Confidence: 0.59\u003cbr\u003eLift: 13.46", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "FAINA BL-55 GYERMELYI 1KG", "title": "Confidence: 0.52\u003cbr\u003eLift: 66.33", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "FAINA BL-55 GYERMELYI 1KG", "title": "Confidence: 0.64\u003cbr\u003eLift: 14.54", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "CREMWURSTI DE PUI CRISTUR", "title": "Confidence: 0.69\u003cbr\u003eLift: 15.66", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_ROSII CHERRY CASEROLA 500G", "title": "Confidence: 0.70\u003cbr\u003eLift: 16.06", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "CASCAVAL TRAPPIST 40% AMMERLAND", "title": "Confidence: 0.68\u003cbr\u003eLift: 15.48", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PUFULETI GUSTO 45G", "title": "Confidence: 0.56\u003cbr\u003eLift: 12.74", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "MUSTAR CRENVURSTILA 270G", "title": "Confidence: 0.52\u003cbr\u003eLift: 25.53", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "MUSTAR CRENVURSTILA 270G", "title": "Confidence: 0.67\u003cbr\u003eLift: 15.28", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "APA MINERALA NATURALA CARBOGAZOASA PERLA HARGHITEI  2L", "title": "Confidence: 0.70\u003cbr\u003eLift: 15.95", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_CLEMENTINA^2 A nu se consuma coaja", "title": "Confidence: 0.50\u003cbr\u003eLift: 24.90", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_CLEMENTINA^2 A nu se consuma coaja", "title": "Confidence: 0.64\u003cbr\u003eLift: 14.59", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "DROJDIE PROASPATA BRAVO 50G", "title": "Confidence: 0.57\u003cbr\u003eLift: 73.39", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "DROJDIE PROASPATA BRAVO 50G", "title": "Confidence: 0.61\u003cbr\u003eLift: 13.92", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PULPE PUI CU SPATE REFR.VRAC SZEKELY CSURKE", "title": "Confidence: 0.80\u003cbr\u003eLift: 18.23", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PULPE PUI CU SPATE REFR.VRAC SZEKELY CSURKE", "title": "Confidence: 0.64\u003cbr\u003eLift: 31.91", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "GRASIME VEGETALA TARTINABILA CU 70% GRASIME RAMA 250G", "title": "Confidence: 0.52\u003cbr\u003eLift: 66.59", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "GRASIME VEGETALA TARTINABILA CU 70% GRASIME RAMA 250G", "title": "Confidence: 0.68\u003cbr\u003eLift: 15.43", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "ELAN ULEI RAFINAT DE FLOAREA SOARELUI 1L", "title": "Confidence: 0.60\u003cbr\u003eLift: 76.50", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "ELAN ULEI RAFINAT DE FLOAREA SOARELUI 1L", "title": "Confidence: 0.71\u003cbr\u003eLift: 16.19", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "UNT 65% GRASIME FRISS 180G", "title": "Confidence: 0.51\u003cbr\u003eLift: 65.18", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "UNT 65% GRASIME FRISS 180G", "title": "Confidence: 0.78\u003cbr\u003eLift: 17.85", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "UNT 65% GRASIME FRISS 180G", "title": "Confidence: 0.63\u003cbr\u003eLift: 31.01", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "LAPTE DE CONSUM 1.5% GRASIME FRISS CUTIE 1L", "title": "Confidence: 0.54\u003cbr\u003eLift: 68.95", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "LAPTE DE CONSUM 1.5% GRASIME FRISS CUTIE 1L", "title": "Confidence: 0.76\u003cbr\u003eLift: 17.23", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "LAPTE DE CONSUM 1.5% GRASIME FRISS CUTIE 1L", "title": "Confidence: 0.62\u003cbr\u003eLift: 30.93", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "CARNE TOCATA PORC VRAC", "title": "Confidence: 0.57\u003cbr\u003eLift: 72.82", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "CARNE TOCATA PORC VRAC", "title": "Confidence: 0.73\u003cbr\u003eLift: 16.63", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "CARNE TOCATA PORC VRAC", "title": "Confidence: 0.56\u003cbr\u003eLift: 27.89", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_LAMAIE^2 A nu se consuma coaja", "title": "Confidence: 0.54\u003cbr\u003eLift: 69.10", "to": "DR.OETKER ZAHAR VANILINAT 8G", "width": 1}, {"arrows": "to", "from": "_LAMAIE^2 A nu se consuma coaja", "title": "Confidence: 0.81\u003cbr\u003eLift: 18.40", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_LAMAIE^2 A nu se consuma coaja", "title": "Confidence: 0.67\u003cbr\u003eLift: 33.05", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "GOBE PAINE CU SECARA SI CARTOFI KG", "title": "Confidence: 0.60\u003cbr\u003eLift: 13.58", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_PORTOCALE PLASA BUC^2 A nu se consuma coaja", "title": "Confidence: 0.68\u003cbr\u003eLift: 15.42", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "GOBE PAINE DE CASA CU CARTOFI RACU 1KG", "title": "Confidence: 0.66\u003cbr\u003eLift: 15.10", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "OTET BISTRITA 1L", "title": "Confidence: 0.58\u003cbr\u003eLift: 13.12", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "APA MINERALA NATURALA CARBOGAZIFICATA CONTINUT REDUS CO2 TUSNAD 2L", "title": "Confidence: 0.71\u003cbr\u003eLift: 16.26", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_ARDEI ALB BIANCA", "title": "Confidence: 0.84\u003cbr\u003eLift: 19.04", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_ARDEI ALB BIANCA", "title": "Confidence: 0.75\u003cbr\u003eLift: 37.18", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_ARDEI ALB BIANCA", "title": "Confidence: 0.54\u003cbr\u003eLift: 36.66", "to": "_TELINA", "width": 1}, {"arrows": "to", "from": "_CASTRAVETI FABIO", "title": "Confidence: 0.76\u003cbr\u003eLift: 17.28", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_CASTRAVETI FABIO", "title": "Confidence: 0.62\u003cbr\u003eLift: 30.95", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "SUNCA DE PORC SISSI GASTRO CAROLI", "title": "Confidence: 0.68\u003cbr\u003eLift: 15.43", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_MANDARINE^2 A nu se consuma coaja", "title": "Confidence: 0.65\u003cbr\u003eLift: 14.71", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "SMANTANA 20% GRASIME FRISS 170G", "title": "Confidence: 0.72\u003cbr\u003eLift: 35.81", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "SMANTANA 20% GRASIME FRISS 170G", "title": "Confidence: 0.77\u003cbr\u003eLift: 17.54", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_CASTRAVETI CORNISON", "title": "Confidence: 0.67\u003cbr\u003eLift: 15.17", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "CAFEA JACOBS KRONUNG 500G", "title": "Confidence: 0.65\u003cbr\u003eLift: 14.80", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_ARDEI GRAS ROMANIA", "title": "Confidence: 0.77\u003cbr\u003eLift: 17.55", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_ARDEI GRAS ROMANIA", "title": "Confidence: 0.62\u003cbr\u003eLift: 30.62", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "PARIZER CRISTUR", "title": "Confidence: 0.67\u003cbr\u003eLift: 15.32", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_MERE ROSII", "title": "Confidence: 0.64\u003cbr\u003eLift: 14.64", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PAINE ALBA SECUIASCA CU CARTOFI FEL.HARMOPAN 500G", "title": "Confidence: 0.67\u003cbr\u003eLift: 15.27", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "DANONE ACTIVIA NATUR 125G", "title": "Confidence: 0.74\u003cbr\u003eLift: 16.81", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "DANONE ACTIVIA NATUR 125G", "title": "Confidence: 0.62\u003cbr\u003eLift: 30.69", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "PULPE PORC FARA OS", "title": "Confidence: 0.69\u003cbr\u003eLift: 15.70", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PASTE ATA PAIANJENULUI CU 8 OUA GYERMELYI 250G", "title": "Confidence: 0.82\u003cbr\u003eLift: 18.67", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PASTE ATA PAIANJENULUI CU 8 OUA GYERMELYI 250G", "title": "Confidence: 0.68\u003cbr\u003eLift: 33.66", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_CEAPA GALBENA", "title": "Confidence: 0.87\u003cbr\u003eLift: 19.92", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_CEAPA GALBENA", "title": "Confidence: 0.76\u003cbr\u003eLift: 37.57", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_CEAPA GALBENA", "title": "Confidence: 0.55\u003cbr\u003eLift: 37.23", "to": "_TELINA", "width": 1}, {"arrows": "to", "from": "MERKUR SACOSA ECO RECICLABILA", "title": "Confidence: 0.73\u003cbr\u003eLift: 16.59", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "GOBE PAINE ALBA DE CASA CU CARTOFI KG", "title": "Confidence: 0.62\u003cbr\u003eLift: 14.14", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "COTLET PORC FARA OS", "title": "Confidence: 0.62\u003cbr\u003eLift: 14.06", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_USTUROI", "title": "Confidence: 0.83\u003cbr\u003eLift: 18.93", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_USTUROI", "title": "Confidence: 0.63\u003cbr\u003eLift: 31.13", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_USTUROI", "title": "Confidence: 0.52\u003cbr\u003eLift: 35.48", "to": "_TELINA", "width": 1}, {"arrows": "to", "from": "PATE PORC BUCEGI 120G", "title": "Confidence: 0.72\u003cbr\u003eLift: 16.45", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "OUA PROASPETE M DIN GHEORGHENI 1*10", "title": "Confidence: 0.73\u003cbr\u003eLift: 16.73", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "OUA PROASPETE M DIN GHEORGHENI 1*10", "title": "Confidence: 0.65\u003cbr\u003eLift: 32.36", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_ARDEI ROSU CALIFORNIA", "title": "Confidence: 0.79\u003cbr\u003eLift: 17.94", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_ARDEI ROSU CALIFORNIA", "title": "Confidence: 0.61\u003cbr\u003eLift: 30.42", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_ARDEI ROSU CALIFORNIA", "title": "Confidence: 0.53\u003cbr\u003eLift: 36.18", "to": "_TELINA", "width": 1}, {"arrows": "to", "from": "SANA 3.6% FRISS 900G", "title": "Confidence: 0.62\u003cbr\u003eLift: 14.08", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PIEPT DE PUI FARA OS REFR.VRAC SZEKELY CSURKE", "title": "Confidence: 0.75\u003cbr\u003eLift: 17.16", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "PIEPT DE PUI FARA OS REFR.VRAC SZEKELY CSURKE", "title": "Confidence: 0.58\u003cbr\u003eLift: 28.93", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "GOBE 10 OUA PROASPETE L", "title": "Confidence: 0.74\u003cbr\u003eLift: 16.85", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "GOBE 10 OUA PROASPETE L", "title": "Confidence: 0.66\u003cbr\u003eLift: 32.55", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_ARDEI ROSU CAPIA", "title": "Confidence: 0.77\u003cbr\u003eLift: 17.48", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_ARDEI ROSU CAPIA", "title": "Confidence: 0.72\u003cbr\u003eLift: 35.58", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_ROSII VRAC", "title": "Confidence: 0.81\u003cbr\u003eLift: 18.45", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "_ROSII VRAC", "title": "Confidence: 0.74\u003cbr\u003eLift: 36.55", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "_ROSII VRAC", "title": "Confidence: 0.53\u003cbr\u003eLift: 35.87", "to": "_TELINA", "width": 1}, {"arrows": "to", "from": "SMANTANA 20% GRASIME FRISS 300G", "title": "Confidence: 0.82\u003cbr\u003eLift: 18.73", "to": "_MORCOVI", "width": 1}, {"arrows": "to", "from": "SMANTANA 20% GRASIME FRISS 300G", "title": "Confidence: 0.70\u003cbr\u003eLift: 34.79", "to": "_PATRUNJEL RADACINA KG", "width": 1}, {"arrows": "to", "from": "SANA 3.6% PET FRISS 330G", "title": "Confidence: 0.67\u003cbr\u003eLift: 15.21", "to": "_MORCOVI", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "forceAtlas2Based": {
+            "avoidOverlap": 0,
+            "centralGravity": 0.01,
+            "damping": 0.09,
+            "gravitationalConstant": -10,
+            "springConstant": 0.08,
+            "springLength": 200
+        },
+        "solver": "forceAtlas2Based",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

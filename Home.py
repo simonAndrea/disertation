@@ -18,6 +18,9 @@ st.title(":chart_with_upwards_trend: Welcome to OptiView!")
 st.markdown("<hr style='border-top: 1px solid #d3d3d3; opacity: 0.5;'>", unsafe_allow_html=True)
 
 st.subheader("Key Features:")
-st.markdown("**Data Visualization:** Transform complex data sets into clear, intuitive visual representations that facilitate understanding and strategic decision-making across your organization.")
-st.markdown("**Data Analysis:** Leverage advanced analytical tools to explore key performance indicators, identify trends, and uncover actionable insights that drive operational optimization.")
-st.markdown("**Forecasting:** Utilize powerful predictive models to anticipate market fluctuations, forecast future business performance, and refine your long-term strategy.")
+with st.expander("Data Visualization:", expanded=True):
+    st.markdown("Transform complex data sets into clear, intuitive visual representations that facilitate understanding and strategic decision-making across your organization.")
+with st.expander("Data Analysis:", expanded=True):
+    st.markdown("Leverage advanced analytical tools to explore key performance indicators, identify trends, and uncover actionable insights that drive operational optimization.")
+with st.expander("Forecasting:", expanded=True):
+    st.markdown("Utilize powerful predictive models to anticipate market fluctuations, forecast future business performance, and refine your long-term strategy.")

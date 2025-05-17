@@ -106,3 +106,27 @@ td, th , thead{
 }
 
 
+div[data-testid="stButton"] > button {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 10px 20px;
+    background-color: #F1F1F1;
+    border: 1px solid #EA6A47;
+    color:#202020;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+div[data-testid="stButton"] > button:hover {
+    background-color: #EA6A47;
+    color: #F1F1F1;
+}
+div[data-testid="stButton"] {
+    width: 100%;
+}
+
+
+.st-emotion-cache-pkbazv{
+    color: #7E909A !important
+}

@@ -1,6 +1,7 @@
-import os, pyodbc, pandas as pd, streamlit as st, plotly.express as px
-from datetime import timedelta
+import os, pyodbc, pandas as pd
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+import urllib
 
 # Load environment variables from .env file
 load_dotenv()
@@ -11,8 +12,18 @@ DATABASE = os.getenv('DB_NAME')
 USERNAME = os.getenv('DB_USERNAME')
 PASSWORD = os.getenv('DB_PASSWORD')
 
-def get_connection():
-    return pyodbc.connect(f'DRIVER={{SQL Server}};SERVER={SERVER};DATABASE={DATABASE};Trusted_Connection=yes;')
+def get_engine():
+    connection_string = (
+        f"DRIVER={{SQL Server}};"
+        f"SERVER={SERVER};"
+        f"DATABASE={DATABASE};"
+        f"UID={USERNAME};"
+        f"PWD={PASSWORD};"
+        f"Trusted_Connection=yes;"
+        f"TrustServerCertificate=yes;"
+    )
+    params = urllib.parse.quote_plus(connection_string)
+    return create_engine(f"mssql+pyodbc:///?odbc_connect={params}")
 
 # Function to retrieve sales data for a given date range
 def get_sales_data(start_date=None, end_date=None):
@@ -31,7 +42,8 @@ def get_sales_data(start_date=None, end_date=None):
         
     query += " GROUP BY CAST(DocumentDate AS DATE) ORDER BY Date;"
     
-    with get_connection() as conn:
+    engine = get_engine()
+    with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
 def getTop10Products():
@@ -43,17 +55,19 @@ def getTop10Products():
     group by i.ItemName
     order by count desc
     """
-    with get_connection() as conn:
+    engine = get_engine()
+    with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
 def getSitePerformance():
     query = """select SiteId, sum(TotalPayment) as TotalAmount
     from FiscalNote
-    where DocumentStateId <> 35 and SiteId in (5,6,7,8,9, 14,15)
+    where DocumentStateId <> 35 
     group by SiteId
     order by TotalAmount desc
     """
-    with get_connection() as conn:
+    engine = get_engine()
+    with engine.connect() as conn:
         return pd.read_sql(query, conn)
     
 def getPaymentMethodsByDateAndSite(date = None):
@@ -73,7 +87,8 @@ def getPaymentMethodsByDateAndSite(date = None):
         query += """ group by SiteId"""
     
     
-    with get_connection() as conn:
+    engine = get_engine()
+    with engine.connect() as conn:
         return pd.read_sql(query, conn)
     
 def getMembership():
@@ -94,7 +109,8 @@ def getMembership():
             AND (mct.CardTypeId IN (17, 24) OR fn.MembershipCardId IS NULL);
     """
     
-    with get_connection() as conn:
+    engine = get_engine()
+    with engine.connect() as conn:
         return pd.read_sql(query, conn)
     
 def getMembershipForHistogram(id=None):
@@ -121,7 +137,8 @@ def getMembershipForHistogram(id=None):
     elif id=='No Card':
         query += " fn.MembershipCardId IS NULL"
     
-    with get_connection() as conn:
+    engine = get_engine()
+    with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
 def get_forecast_data():
@@ -137,5 +154,6 @@ def get_forecast_data():
     ORDER BY Date;
     """
     
-    with get_connection() as conn:
+    engine = get_engine()
+    with engine.connect() as conn:
         return pd.read_sql(query, conn)
